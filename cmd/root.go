@@ -8,14 +8,13 @@ import (
 )
 
 var RootCmd = &cobra.Command{
-	Use:   "master-service",
-	Short: "Master service for tutors plan",
+	Use:   "skoolz",
+	Short: "Skoolz REST API service",
 }
 
 func init() {
 	RootCmd.AddCommand(serveRestCmd)
 	RootCmd.AddCommand(migrateCmd)
-	registerGrpcCmd()
 }
 
 func Execute() {

@@ -87,32 +87,3 @@ func (s *StartupLogger) Cache(message string, args ...any) {
 	}
 }
 
-// Messaging logs a messaging startup step with a message icon
-func (s *StartupLogger) Messaging(message string, args ...any) {
-	icon := "📨"
-	if len(args) > 0 {
-		s.logger.Info(fmt.Sprintf("%s %s", icon, message), args...)
-	} else {
-		s.logger.Info(fmt.Sprintf("%s %s", icon, message))
-	}
-}
-
-// Stream logs a stream startup step with a stream icon
-func (s *StartupLogger) Stream(message string, args ...any) {
-	icon := "🌊"
-	if len(args) > 0 {
-		s.logger.Info(fmt.Sprintf("%s %s", icon, message), args...)
-	} else {
-		s.logger.Info(fmt.Sprintf("%s %s", icon, message))
-	}
-}
-
-// Subscription logs a subscription startup step with a subscription icon
-func (s *StartupLogger) Subscription(message string, args ...any) {
-	icon := "📡"
-	if len(args) > 0 {
-		s.logger.Info(fmt.Sprintf("%s %s", icon, message), args...)
-	} else {
-		s.logger.Info(fmt.Sprintf("%s %s", icon, message))
-	}
-}

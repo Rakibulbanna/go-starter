@@ -41,43 +41,38 @@ go-api/
 ├── Dockerfile
 │
 ├── cmd/                     # CLI entry points (cobra commands)
-│   ├── root.go              #   `master-service` root command
+│   ├── root.go              #   `skoolz` root command
 │   ├── rest-api.go          #   `serve-rest`  → boots HTTP server
-│   ├── grpc.go              #   `serve-grpc`  → boots gRPC server (build tag)
-│   ├── grpc_stub.go         #   no-op when built without -tags grpc
 │   └── migrate.go           #   `migrate`     → runs SQL files in order
 │
 ├── config/                  # Configuration loading
-│   ├── config.go            #   Struct + env tags (envconfig style)
+│   ├── config.go            #   Config struct
 │   ├── load.go              #   Loads .env → populates struct
 │   └── db.go                #   NewPostgresDB() — opens sqlx.DB
 │
 ├── database/postgres/
 │   └── repositories/        # SQL data access layer (think "models")
 │       ├── user_repository.go
-│       └── task_repository.go   ← NEW
+│       └── task_repository.go
 │
 ├── internal/
 │   ├── infrastructure/
-│   │   ├── container/       # Singleton DI container
-│   │   │   └── container.go #   Holds db, redis, logger, messaging
-│   │   ├── database/postgres/migrations/
-│   │   │   └── 001_create_tasks_table.sql   ← NEW
-│   │   ├── external/
-│   │   └── messaging/       # Kafka + NATS wrappers
+│   │   ├── container/       # Singleton DI container (db, redis, logger)
+│   │   │   └── container.go
+│   │   └── database/postgres/migrations/
+│   │       ├── 001_create_tasks_table.sql
+│   │       └── 002_create_category.sql
 │   │
 │   ├── interfaces/
-│   │   ├── http/            # REST layer
-│   │   │   ├── server.go    #   net/http server + graceful shutdown
-│   │   │   ├── routes/      #   route table (ServeMux registration)
-│   │   │   ├── handlers/    #   per-resource HTTP handlers
-│   │   │   │   ├── welcome_handler.go
-│   │   │   │   ├── health_handler.go
-│   │   │   │   ├── not_found_handler.go
-│   │   │   │   └── task_handler.go         ← NEW
-│   │   │   └── middleware/  #   logging, recover, auth, CORS
-│   │   ├── grpc/            # gRPC layer (excluded unless built with -tags grpc)
-│   │   └── cli/
+│   │   └── http/            # REST layer
+│   │       ├── server.go    #   net/http server + graceful shutdown
+│   │       ├── routes/      #   route table (ServeMux registration)
+│   │       ├── handlers/    #   per-resource HTTP handlers
+│   │       │   ├── welcome_handler.go
+│   │       │   ├── health_handler.go
+│   │       │   ├── not_found_handler.go
+│   │       │   └── task_handler.go
+│   │       └── middleware/  #   logging, recover, auth, CORS
 │   │
 │   ├── logger/              # slog + lumberjack JSON logger
 │   └── shared/
@@ -87,10 +82,7 @@ go-api/
 │       ├── types/
 │       └── utils/
 │
-├── pkg/cache/               # Redis client wrapper
-└── proto/                   # .proto definitions (gRPC schemas)
-    ├── health/health.proto
-    └── welcome/welcome.proto
+└── pkg/cache/               # Redis client wrapper (optional)
 ```
 
 ### Why `internal/`?
@@ -112,10 +104,9 @@ library — analogous to `commander` in Node.
 | Path                                                    | Responsibility                                                   | Node.js analogue                                  |
 | ------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------- |
 | `main.go`                                               | Entry point, just calls `cmd.Execute()`                          | `index.js`                                        |
-| `cmd/`                                                  | Cobra CLI commands (`serve-rest`, `migrate`, ...)                | `bin/cli.js` + `commander`                        |
-| `config/`                                               | Loads `.env` into a typed `Config` struct via `envconfig`        | `dotenv` + manual mapping                         |
-| `internal/infrastructure/container/`                    | Singleton DI: holds DB, Redis, logger, messaging                 | A `services` module exporting initialised clients |
-| `internal/infrastructure/messaging/`                    | Kafka + NATS publishers/subscribers                              | `kafkajs` / `nats.js` wrappers                    |
+| `cmd/`                                                  | Cobra CLI commands (`serve-rest`, `migrate`)                     | `bin/cli.js` + `commander`                        |
+| `config/`                                               | Loads `.env` into a typed `Config` struct                        | `dotenv` + manual mapping                         |
+| `internal/infrastructure/container/`                    | Singleton DI: holds DB, Redis, logger                            | A `services` module exporting initialised clients |
 | `internal/infrastructure/database/postgres/migrations/` | Plain `.sql` files run in alphabetical order by `cmd/migrate.go` | Knex/Prisma migration files                       |
 | `database/postgres/repositories/`                       | SQL queries grouped by entity (`User`, `Task`)                   | Prisma models / repository pattern                |
 | `internal/interfaces/http/server.go`                    | Constructs `http.Server`, ListenAndServe, graceful shutdown      | `app.listen(...)` + signal handling               |
@@ -125,27 +116,23 @@ library — analogous to `commander` in Node.
 | `internal/shared/response/`                             | `WriteOK`, `WriteCreated`, `WriteNotFound`, ...                  | A `respond.js` helper                             |
 | `internal/shared/error/`                                | API error type with status code + error code                     | Custom `HttpError` class                          |
 | `internal/logger/`                                      | Structured slog + log rotation via `lumberjack`                  | `pino` or `winston`                               |
-| `pkg/cache/`                                            | Redis client + helpers                                           | `ioredis` wrapper                                 |
-| `proto/`                                                | gRPC `.proto` files; codegen produces `*.pb.go`                  | gRPC `.proto` files                               |
+| `pkg/cache/`                                            | Redis client + helpers (optional)                                | `ioredis` wrapper                                 |
 
 ### Third-party libraries you'll see in `go.mod`
 
 | Import                               | What it does                                            |
 | ------------------------------------ | ------------------------------------------------------- |
 | `github.com/spf13/cobra`             | CLI framework — defines the subcommands                 |
-| `github.com/spf13/viper`             | Config loader (used here partially)                     |
+| `github.com/spf13/viper`             | Config loader                                           |
 | `github.com/joho/godotenv`           | Loads `.env` files                                      |
 | `github.com/jmoiron/sqlx`            | A small extension over `database/sql` (struct scanning) |
 | `github.com/lib/pq`                  | Postgres driver                                         |
 | `github.com/google/uuid`             | UUID generation/parsing                                 |
-| `github.com/redis/go-redis/v9`       | Redis client                                            |
-| `github.com/segmentio/kafka-go`      | Kafka client                                            |
-| `github.com/nats-io/nats.go`         | NATS client                                             |
+| `github.com/redis/go-redis/v9`       | Redis client (optional cache)                           |
 | `github.com/golang-jwt/jwt/v5`       | JWT signing/verification                                |
 | `github.com/go-playground/validator` | Struct-tag validation (like `class-validator`)          |
-| `google.golang.org/grpc`             | gRPC runtime                                            |
 | `gopkg.in/natefinch/lumberjack.v2`   | Rotating log file writer                                |
-| `go.elastic.co/apm`                  | Elastic APM tracing                                     |
+| `go.elastic.co/apm/module/apmhttp`   | Elastic APM HTTP tracing                                |
 
 ---
 
@@ -155,7 +142,7 @@ You need:
 
 1. **Go 1.24+** (`go version`)
 2. **PostgreSQL 13+** running and reachable. Easiest: Docker.
-3. (Optional) Docker for Kafka/Redis/NATS if you want messaging.
+3. (Optional) Redis if you want caching — the API runs fine without it.
 
 Verify Postgres is up — in this environment we use the `postgres-db` container:
 
@@ -578,7 +565,7 @@ make stop && make build && make run
 
 ```bash
 make help              # List all targets
-make build             # Compile ./main (REST only — no proto needed)
+make build             # Compile ./main
 make migrate           # Apply pending SQL migrations
 make run               # Start the REST API on :9090
 make start             # build + migrate + run
@@ -588,60 +575,15 @@ make clean             # Remove ./main
 
 make tidy              # go mod tidy
 make install-deps      # go mod download
+make install-dev-deps  # install air for hot reload
 make fmt               # gofmt -s -w .
 make vet               # go vet ./...
 make test              # go test ./...
-
-# Optional, only if you need gRPC:
-make install-proto-deps
-make proto             # regenerate *.pb.go from proto/*.proto (needs protoc)
-make build-grpc        # go build -tags grpc
-
-# Optional, if there's a sibling infra/ docker-compose for Kafka/Redis/NATS:
-make infra-up
-make infra-down
-make infra-logs
 ```
 
 ---
 
-## 10. About the gRPC build tag
-
-The repo has `proto/*.proto` files but the generated `*.pb.go` files were
-missing, so `go build ./...` failed. To keep the REST flow unblocked, every
-file under `internal/interfaces/grpc/` and `cmd/grpc.go` now starts with:
-
-```go
-//go:build grpc
-```
-
-That means: **these files are only compiled when you pass `-tags grpc`.**
-So:
-
-- `make build` → REST only, always works
-- `make build-grpc` → includes gRPC, only works after `make proto`
-
-When you're ready to enable gRPC:
-
-```bash
-# 1. Install protoc itself
-sudo apt install -y protobuf-compiler          # Debian/Ubuntu
-# or: brew install protobuf                    # macOS
-
-# 2. Install the Go plugins
-make install-proto-deps
-
-# 3. Generate the .pb.go files
-make proto
-
-# 4. Build with gRPC enabled
-make build-grpc
-./main serve-grpc
-```
-
----
-
-## 11. Hot reload during development
+## 10. Hot reload during development
 
 ```bash
 make install-dev-deps       # one-time: installs `air`
@@ -652,7 +594,7 @@ make dev                    # rebuild + restart on every save
 
 ---
 
-## 12. Handy Go commands you'll use a lot
+## 11. Handy Go commands you'll use a lot
 
 ```bash
 go version                  # Confirm toolchain
@@ -668,7 +610,7 @@ go doc net/http             # Read package documentation in the terminal
 
 ---
 
-## 13. Common gotchas coming from Node
+## 12. Common gotchas coming from Node
 
 1. **Imports must be used.** Unused import = compile error. Same for unused
    local variables. Use `_ "github.com/lib/pq"` for "side-effect only"
@@ -689,25 +631,21 @@ go doc net/http             # Read package documentation in the terminal
 5. **Struct tags drive everything.** JSON shape, DB columns, env vars, and
    validation all come from string tags after each field, e.g.
    `Email string \`db:"email" json:"email" validate:"required,email"\``.
-6. **One binary, many subcommands.** `./main serve-rest`, `./main migrate`,
-   `./main serve-grpc` — all the same compiled file with different cobra
-   subcommands.
+6. **One binary, many subcommands.** `./main serve-rest` and `./main migrate`
+   are the same compiled file with different cobra subcommands.
 
 ---
 
-## 14. What's running where (this environment)
+## 13. What's running where (this environment)
 
-| Service  | Address           | Status                                               |
-| -------- | ----------------- | ---------------------------------------------------- |
-| Postgres | `localhost:5432`  | Running (Docker container `postgres-db`)             |
-| REST API | `localhost:9090`  | `make run`                                           |
-| Redis    | `localhost:6379`  | Not running — app continues without cache            |
-| Kafka    | `localhost:9092`  | Not running — logs reconnect errors but server works |
-| NATS     | `localhost:4222`  | Not running                                          |
-| gRPC     | `localhost:50001` | Disabled until protos are generated                  |
+| Service  | Address          | Status                                    |
+| -------- | ---------------- | ----------------------------------------- |
+| Postgres | `localhost:5432` | Running (Docker container `postgres-db`)  |
+| REST API | `localhost:9090` | `make run`                                |
+| Redis    | `localhost:6379` | Optional — app continues without cache    |
 
-If Kafka/Redis noise bothers you in dev, set `KAFKA_ENABLE=false` in `.env`
-and ignore the Redis warning — neither blocks the REST API.
+The REST API only requires Postgres. Redis is optional — if it's unreachable
+the server logs a single warning and keeps running without caching.
 
 ---
 
