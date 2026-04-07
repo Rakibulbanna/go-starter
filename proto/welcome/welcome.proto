@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package welcome;
+
+option go_package = "skoolz/proto/welcome;welcome";
+
+import "google/protobuf/timestamp.proto";
+
+// Welcome service provides welcome functionality
+service WelcomeService {
+  // Welcome returns a welcome message
+  rpc Welcome(WelcomeRequest) returns (WelcomeResponse);
+}
+
+// WelcomeRequest is the request for welcome
+message WelcomeRequest {}
+
+// WelcomeResponse is the response for welcome
+message WelcomeResponse {
+  string message = 1;
+  string service = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  string project_version = 4;
+} 

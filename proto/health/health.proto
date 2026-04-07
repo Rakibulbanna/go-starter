@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package health;
+
+option go_package = "skoolz/proto/health;health";
+
+import "google/protobuf/timestamp.proto";
+
+service HealthService {
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  string status = 1;
+  string service = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  string version = 4;
+} 
